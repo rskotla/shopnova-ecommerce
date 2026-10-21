@@ -43,7 +43,7 @@ pipeline {
                     python -m pip install --upgrade pip
                     pip install -r backend/requirements.txt pytest
                     python -m py_compile backend/app.py
-                    pytest -q tests/test_api_smoke.py
+                    PYTHONPATH="$WORKSPACE" pytest -q tests/test_api_smoke.py
                 '''
             }
         }
