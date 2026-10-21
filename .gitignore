@@ -1,0 +1,25 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / frontend build
+node_modules/
+frontend/dist/
+npm-debug.log*
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+
+# Test and coverage output
+.coverage
+htmlcov/

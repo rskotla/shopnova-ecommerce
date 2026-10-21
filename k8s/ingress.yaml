@@ -1,0 +1,26 @@
+# Example only. Replace hostname and confirm your Traefik IngressClass/TLS setup first.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnova
+  namespace: shopnova
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: shopnova.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: shopnova-api
+                port:
+                  number: 5000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shopnova-web
+                port:
+                  number: 80

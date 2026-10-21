@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shopnova-api-secrets
+  namespace: shopnova
+type: Opaque
+stringData:
+  SECRET_KEY: REPLACE_WITH_LONG_RANDOM_SECRET
+  JWT_SECRET_KEY: REPLACE_WITH_DIFFERENT_LONG_RANDOM_SECRET
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopnova-api
+  namespace: shopnova
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shopnova-api
+  template:
+    metadata:
+      labels:
+        app: shopnova-api
+    spec:
+      containers:
+        - name: api
+          image: YOUR_DOCKERHUB_USER/shopnova-api:1.0.0
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://shopnova:REPLACE_DB_PASSWORD@shopnova-postgres:5432/shopnova
+            - name: SECRET_KEY
+              valueFrom: { secretKeyRef: { name: shopnova-api-secrets, key: SECRET_KEY } }
+            - name: JWT_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: shopnova-api-secrets, key: JWT_SECRET_KEY } }
+            - name: CORS_ORIGINS
+              value: https://shopnova.example.com
+          readinessProbe:
+            httpGet: { path: /api/health, port: 5000 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 5000 }
+            initialDelaySeconds: 25
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnova-api
+  namespace: shopnova
+spec:
+  selector:
+    app: shopnova-api
+  ports:
+    - port: 5000
+      targetPort: 5000

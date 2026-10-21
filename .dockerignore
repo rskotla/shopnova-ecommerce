@@ -1,0 +1,10 @@
+.git
+.venv
+.venv-ci
+node_modules
+dist
+__pycache__
+*.pyc
+.env
+.env.local
+*.db
