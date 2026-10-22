@@ -23,6 +23,3 @@ npm-debug.log*
 # Test and coverage output
 .coverage
 htmlcov/
-
-# Local database backups
-backups/
