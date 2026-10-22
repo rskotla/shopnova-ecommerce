@@ -113,7 +113,7 @@ function App() {
   }
 
   return <div className="min-h-screen bg-[#f8f8f6] text-[#20231f]">
-    <div className="announcement"><Sparkles size={13}/> The little things, exceptionally well. <span className="announcement-sep">·</span> CI/CD Release Test — Build Verification.</div>
+    <div className="announcement"><Sparkles size={13}/> The little things, exceptionally well. <span className="announcement-sep">·</span> CI/CD Release Test (Rohit Sharma) — Build Verification.</div>
     <header className="site-header">
       <div className="header-inner">
         <button className="icon-button mobile-only" aria-label="Open menu" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={21}/></button>
