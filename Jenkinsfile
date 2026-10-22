@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -15,6 +14,7 @@ pipeline {
         WEB_IMAGE      = 'rohitkotla/shopnova-web'
         IMAGE_TAG      = "${BUILD_NUMBER}"
         REMOTE_DIR     = "/tmp/shopnova-ecommerce-${BUILD_NUMBER}"
+        K8S_NAMESPACE  = 'shopnova'
     }
 
     stages {
@@ -135,9 +135,63 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to K3s') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'shopnova-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        echo "Checking kubectl availability..."
+                        command -v kubectl
+
+                        echo "Checking ShopNova deployment permissions..."
+                        kubectl auth can-i patch deployments -n "$K8S_NAMESPACE"
+
+                        echo "Deploying API image: $API_IMAGE:$IMAGE_TAG"
+                        kubectl -n "$K8S_NAMESPACE" set image \
+                          deployment/shopnova-api \
+                          api="$API_IMAGE:$IMAGE_TAG"
+
+                        echo "Deploying Web image: $WEB_IMAGE:$IMAGE_TAG"
+                        kubectl -n "$K8S_NAMESPACE" set image \
+                          deployment/shopnova-web \
+                          web="$WEB_IMAGE:$IMAGE_TAG"
+
+                        echo "Waiting for API rollout..."
+                        kubectl -n "$K8S_NAMESPACE" rollout status \
+                          deployment/shopnova-api --timeout=180s
+
+                        echo "Waiting for Web rollout..."
+                        kubectl -n "$K8S_NAMESPACE" rollout status \
+                          deployment/shopnova-web --timeout=180s
+
+                        echo "Verifying deployed images and replicas..."
+                        kubectl -n "$K8S_NAMESPACE" get deployments \
+                          shopnova-api shopnova-web \
+                          -o custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image,READY:.status.readyReplicas'
+
+                        echo "ShopNova deployment completed successfully."
+                    '''
+                }
+            }
+        }
     }
 
     post {
+        success {
+            echo 'ShopNova CI/CD pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Review the failed stage and Jenkins console log.'
+        }
+
         always {
             sh 'rm -rf .venv-ci || true'
 
