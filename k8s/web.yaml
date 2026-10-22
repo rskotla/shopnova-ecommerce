@@ -15,27 +15,36 @@ spec:
     spec:
       containers:
         - name: web
-          image: YOUR_DOCKERHUB_USER/shopnova-web:1.0.0
+          image: rohitkotla/shopnova-web:10
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           readinessProbe:
-            httpGet: { path: /, port: 80 }
+            httpGet:
+              path: /
+              port: 80
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
-            httpGet: { path: /, port: 80 }
-            initialDelaySeconds: 10
-            periodSeconds: 20
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 15
           resources:
-            requests: { cpu: 50m, memory: 64Mi }
-            limits: { cpu: 500m, memory: 256Mi }
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: shopnova-web
+  name: web
   namespace: shopnova
 spec:
+  type: ClusterIP
   selector:
     app: shopnova-web
   ports:
