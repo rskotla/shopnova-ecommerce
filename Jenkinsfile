@@ -136,47 +136,85 @@ pipeline {
             }
         }
 
-        stage('Deploy to K3s') {
+        stage('Update GitOps Manifests') {
             steps {
                 withCredentials([
-                    file(
-                        credentialsId: 'shopnova-kubeconfig',
-                        variable: 'KUBECONFIG'
+                    usernamePassword(
+                        credentialsId: 'github-repo-write',
+                        usernameVariable: 'GIT_USERNAME',
+                        passwordVariable: 'GIT_PASSWORD'
                     )
                 ]) {
                     sh '''
                         set -eu
 
-                        echo "Checking kubectl availability..."
-                        command -v kubectl
+                        python3 - "$IMAGE_TAG" <<'PYTAG'
+from pathlib import Path
+import re
+import sys
 
-                        echo "Checking ShopNova deployment permissions..."
-                        kubectl auth can-i patch deployments -n "$K8S_NAMESPACE"
+tag = sys.argv[1]
+if not tag.isdigit():
+    raise SystemExit("Invalid image tag")
 
-                        echo "Deploying API image: $API_IMAGE:$IMAGE_TAG"
-                        kubectl -n "$K8S_NAMESPACE" set image \
-                          deployment/shopnova-api \
-                          api="$API_IMAGE:$IMAGE_TAG"
+for filename, image in [
+    ("k8s/api.yaml", "rohitkotla/shopnova-api"),
+    ("k8s/web.yaml", "rohitkotla/shopnova-web"),
+]:
+    path = Path(filename)
+    content = path.read_text()
+    pattern = r"(^\s*image:\s*)" + re.escape(image) + r":[^\s]+"
+    updated, count = re.subn(
+        pattern, lambda match: match.group(1) + image + ":" + tag,
+        content, flags=re.MULTILINE
+    )
+    if count != 1:
+        raise SystemExit(f"Expected one image entry in {filename}; found {count}")
+    path.write_text(updated)
+PYTAG
 
-                        echo "Deploying Web image: $WEB_IMAGE:$IMAGE_TAG"
-                        kubectl -n "$K8S_NAMESPACE" set image \
-                          deployment/shopnova-web \
-                          web="$WEB_IMAGE:$IMAGE_TAG"
+                        git diff --check
 
-                        echo "Waiting for API rollout..."
-                        kubectl -n "$K8S_NAMESPACE" rollout status \
-                          deployment/shopnova-api --timeout=180s
+                        EXPECTED_COMMIT="$(git rev-parse HEAD)"
+                        git fetch origin develop
+                        REMOTE_COMMIT="$(git rev-parse refs/remotes/origin/develop)"
 
-                        echo "Waiting for Web rollout..."
-                        kubectl -n "$K8S_NAMESPACE" rollout status \
-                          deployment/shopnova-web --timeout=180s
+                        if [ "$REMOTE_COMMIT" != "$EXPECTED_COMMIT" ]; then
+                            echo "ERROR: origin/develop changed after this build's checkout."
+                            echo "Expected: $EXPECTED_COMMIT"
+                            echo "Remote:   $REMOTE_COMMIT"
+                            echo "Aborting GitOps update. Review and rebuild."
+                            exit 1
+                        fi
 
-                        echo "Verifying deployed images and replicas..."
-                        kubectl -n "$K8S_NAMESPACE" get deployments \
-                          shopnova-api shopnova-web \
-                          -o custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image,READY:.status.readyReplicas'
+                        git add k8s/api.yaml k8s/web.yaml
 
-                        echo "ShopNova deployment completed successfully."
+                        if git diff --cached --quiet; then
+                            echo "No manifest changes to commit."
+                            exit 0
+                        fi
+
+                        git config user.name "jenkins-shopnova"
+                        git config user.email "jenkins-shopnova@users.noreply.github.com"
+                        git commit -m "Update ShopNova images to release $IMAGE_TAG [skip ci]"
+
+                        ASKPASS="$(mktemp)"
+                        trap 'rm -f "$ASKPASS"' EXIT
+                        cat > "$ASKPASS" <<'ASKPASS_SCRIPT'
+#!/bin/sh
+case "$1" in
+    *Username*) printf '%s\n' "$GIT_USERNAME" ;;
+    *Password*) printf '%s\n' "$GIT_PASSWORD" ;;
+    *) exit 1 ;;
+esac
+ASKPASS_SCRIPT
+                        chmod 700 "$ASKPASS"
+
+                        GIT_ASKPASS="$ASKPASS" \
+                        GIT_TERMINAL_PROMPT=0 \
+                          git push https://github.com/rskotla/shopnova-ecommerce.git HEAD:develop
+
+                        echo "GitOps manifests pushed. Argo CD manual sync is required."
                     '''
                 }
             }
