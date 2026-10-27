@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: rohitkotla/shopnova-api:17
+          image: rohitkotla/shopnova-api:18
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

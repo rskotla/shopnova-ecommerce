@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: rohitkotla/shopnova-web:17
+          image: rohitkotla/shopnova-web:18
           imagePullPolicy: Always
           ports:
             - containerPort: 80
