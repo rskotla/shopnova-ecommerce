@@ -23,3 +23,15 @@ npm-debug.log*
 # Test and coverage output
 .coverage
 htmlcov/
+
+
+# Jenkins backup files
+Jenkinsfile.before-helper-20261023-003612
+Jenkinsfile.pre-gitops-20261023-000511
+
+# Frontend backup files
+frontend/src/main.jsx.cicd-backup
+
+# Kubernetes manifest backup files
+k8s/*.backup
+k8s/*.backup2
