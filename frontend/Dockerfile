@@ -1,4 +1,3 @@
-
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -13,11 +12,15 @@ RUN npm run build
 
 FROM nginx:stable-alpine
 
-RUN apk update && apk upgrade --no-cache
+RUN apk update \
+    && apk upgrade --no-cache \
+    && apk policy brotli-libs curl libcurl \
+    && rm -rf /var/cache/apk/*
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1
