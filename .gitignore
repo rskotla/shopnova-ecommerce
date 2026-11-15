@@ -34,4 +34,6 @@ frontend/src/main.jsx.cicd-backup
 
 # Kubernetes manifest backup files
 k8s/*.backup
-k8s/*.backup2
+k8s/*.backup2.venv-ci/
+
+.venv-ci/
