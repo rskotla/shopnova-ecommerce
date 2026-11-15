@@ -2,7 +2,9 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-RUN apk update && apk upgrade --no-cache
+RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://dl-4.alpinelinux.org/alpine|g' /etc/apk/repositories \
+    && apk update \
+    && apk upgrade --no-cache
 
 COPY package*.json ./
 RUN npm install
@@ -12,7 +14,8 @@ RUN npm run build
 
 FROM nginx:stable-alpine
 
-RUN apk update \
+RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://dl-4.alpinelinux.org/alpine|g' /etc/apk/repositories \
+    && apk update \
     && apk upgrade --no-cache \
     && apk policy brotli-libs curl libcurl \
     && rm -rf /var/cache/apk/*
