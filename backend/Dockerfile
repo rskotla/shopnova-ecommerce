@@ -6,14 +6,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apk update && apk upgrade --no-cache
+RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://dl-4.alpinelinux.org/alpine|g' /etc/apk/repositories \
+    && apk update \
+    && apk upgrade --no-cache
 
 RUN adduser -D -u 10001 appuser \
     && mkdir -p /app/instance \
     && chown -R appuser:appuser /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
+COPY wheelhouse/ /wheelhouse/
+
+RUN pip install --no-cache-dir --no-index \
+    --find-links=/wheelhouse \
+    -r requirements.txt \
+    && rm -rf /wheelhouse
 
 COPY --chown=appuser:appuser app.py .
 
