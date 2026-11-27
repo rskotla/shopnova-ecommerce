@@ -72,7 +72,7 @@ pipeline {
                           "mkdir -p '$REMOTE_DIR' && tar -xzf - -C '$REMOTE_DIR'"
 
                         ssh $SSH_OPTS "$SSH_USER@$DOCKER_HOST_IP" \
-                          "cd '$REMOTE_DIR' && docker build -t '$API_IMAGE:$IMAGE_TAG' ./backend && docker build -t '$WEB_IMAGE:$IMAGE_TAG' ./frontend"
+                          "cd '$REMOTE_DIR' && docker build -t '$API_IMAGE:$IMAGE_TAG' ./backend && docker build --pull --no-cache -t '$WEB_IMAGE:$IMAGE_TAG' ./frontend"
                     '''
                 }
             }

@@ -17,7 +17,7 @@ FROM nginx:stable-alpine
 RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://dl-4.alpinelinux.org/alpine|g' /etc/apk/repositories \
     && apk update \
     && apk upgrade --no-cache \
-    && apk policy brotli-libs curl libcurl \
+    && apk info -v libxml2 \
     && rm -rf /var/cache/apk/*
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
